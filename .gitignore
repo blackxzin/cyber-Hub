@@ -1,0 +1,46 @@
+# ─── Dependências ────────────────────────────────────────
+node_modules/
+.pnpm-store/
+
+# ─── Build outputs ───────────────────────────────────────
+dist/
+.next/
+out/
+build/
+
+# ─── Cache ───────────────────────────────────────────────
+.turbo/
+.cache/
+*.tsbuildinfo
+
+# ─── Ambiente e segredos ─────────────────────────────────
+.env
+.env.local
+.env.*.local
+
+# ─── n8n — credenciais (SEMPRE secretas) ─────────────────
+n8n/credentials/
+
+# ─── Dados locais ────────────────────────────────────────
+data/
+prisma/migrations/dev.db*
+
+# ─── Logs ────────────────────────────────────────────────
+*.log
+logs/
+npm-debug.log*
+pnpm-debug.log*
+
+# ─── OS ──────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ─── IDE ─────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ─── Coverage ────────────────────────────────────────────
+coverage/
+.nyc_output/

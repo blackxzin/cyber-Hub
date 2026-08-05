@@ -1,0 +1,267 @@
+// CyberHub AI — fonte da verdade do banco.
+// Modelo conforme ADR AD-07. Prisma parametriza tudo (zero SQL cru → anti-SQLi).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ───────────────────────────────────────────────
+enum RoleName {
+  ADMIN
+  ANALYST
+  VIEWER
+  BOT
+}
+
+enum ConsultaType {
+  IP
+  DOMAIN
+  CVE
+  NEWS
+}
+
+enum ConsultaStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+enum ReportFormat {
+  PDF
+  HTML
+  JSON
+}
+
+enum AlertChannel {
+  DISCORD
+  EMAIL
+  WEBHOOK
+}
+
+enum AiKind {
+  RESUME_IP
+  RESUME_DOMAIN
+  EXPLAIN_CVE
+  RESUME_NEWS
+  REPORT_SUMMARY
+  CHAT
+}
+
+// ─── Identity & RBAC ─────────────────────────────────────
+model User {
+  id           String        @id @default(uuid())
+  email        String        @unique
+  passwordHash String
+  name         String?
+  apiKeyHash   String?       @unique // uso exclusivo de role=BOT (header x-api-key)
+  role         RoleName      @default(VIEWER)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  roleId        String?
+  roleRef       Role?         @relation(name: "UserRole", fields: [roleId], references: [id])
+
+  auditLogs     AuditLog[]
+  consultas     Consulta[]
+  reports       Report[]
+  alerts        Alert[]
+  refreshTokens RefreshToken[]
+  configuracoes Configuracao[]
+
+  @@index([roleId])
+  @@index([email])
+}
+
+model Role {
+  id          String       @id @default(uuid())
+  name        RoleName     @unique
+  users       User[]       @relation(name: "UserRole")
+  permissions Permission[]
+
+  @@index([name])
+}
+
+model Permission {
+  id     String @id @default(uuid())
+  name   String
+  roleId String
+  role   Role   @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([name, roleId])
+  @@index([roleId])
+}
+
+// ─── Auditoria ────────────────────────────────────────────
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action    String
+  target    String?
+  ip        String?
+  userAgent String?
+  meta      Json?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
+  @@index([action])
+}
+
+// ─── Intel / Consultas ────────────────────────────────────
+model Consulta {
+  id          String         @id @default(uuid())
+  userId      String
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type        ConsultaType
+  query       String
+  status      ConsultaStatus @default(PENDING)
+  createdAt   DateTime       @default(now())
+  completedAt DateTime?
+
+  results   ConsultaResult[]
+  aiSummary AiSummary?
+  report    Report?
+
+  @@index([userId, createdAt])
+  @@index([type, query])
+}
+
+model ConsultaResult {
+  id        String   @id @default(uuid())
+  consultaId String
+  consulta   Consulta @relation(fields: [consultaId], references: [id], onDelete: Cascade)
+  source     String // virustotal | abuseipdb | shodan | whois | dns | nvd | cisa | rss
+  payload    Json
+  fetchedAt  DateTime @default(now())
+
+  @@index([consultaId])
+  @@index([source])
+}
+
+model AiSummary {
+  id         String   @id @default(uuid())
+  consultaId String   @unique
+  consulta   Consulta @relation(fields: [consultaId], references: [id], onDelete: Cascade)
+  kind       AiKind
+  prompt     String
+  response   String
+  provider   String
+  tokensUsed Int?
+  createdAt  DateTime @default(now())
+
+  @@index([kind])
+}
+
+// ─── Relatórios ────────────────────────────────────────────
+model Report {
+  id          String       @id @default(uuid())
+  userId      String
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  consultaId  String?      @unique
+  consulta    Consulta?    @relation(fields: [consultaId], references: [id], onDelete: SetNull)
+  title       String
+  summaryExec String?
+  riskScore   Int?
+  filePath    String?
+  format      ReportFormat @default(PDF)
+  createdAt   DateTime       @default(now())
+
+  @@index([userId, createdAt])
+}
+
+// ─── Alertas ───────────────────────────────────────────────
+model Alert {
+  id          String       @id @default(uuid())
+  userId      String
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rule        Json
+  channel     AlertChannel @default(DISCORD)
+  active      Boolean      @default(true)
+  lastFiredAt DateTime?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@index([userId])
+  @@index([active])
+}
+
+// ─── Threat Intel ingerida (n8n / endpoints) ──────────────
+model Cve {
+  id          String         @id // "CVE-YYYY-NNNN"
+  publishedAt DateTime?
+  cvss        Float?
+  description String
+  payload     Json?
+  references  CveReference[]
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@index([publishedAt])
+}
+
+model CveReference {
+  id     String @id @default(uuid())
+  cveId  String
+  cve    Cve    @relation(fields: [cveId], references: [id], onDelete: Cascade)
+  url    String
+  source String?
+
+  @@index([cveId])
+}
+
+model News {
+  id          String       @id @default(uuid())
+  title       String
+  url          String       @unique
+  source      String?
+  publishedAt DateTime?
+  summary     String?
+  body        String?
+  sources     NewsSource[]
+  createdAt   DateTime       @default(now())
+
+  @@index([publishedAt])
+}
+
+model NewsSource {
+  id     String @id @default(uuid())
+  newsId String
+  news   News   @relation(fields: [newsId], references: [id], onDelete: Cascade)
+  name   String
+  url    String?
+
+  @@index([newsId])
+}
+
+// ─── Configuração (prefs/limites, global ou por user) ─────
+model Configuracao {
+  id     String  @id @default(uuid())
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  key    String
+  value  Json
+
+  @@unique([userId, key])
+  @@index([key])
+}
+
+// ─── Refresh tokens (auditoria — estado ativo/revogado no Redis) ─
+model RefreshToken {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique
+  revoked   Boolean  @default(false)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
+}

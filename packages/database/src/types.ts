@@ -1,0 +1,25 @@
+// Reexporta tipos Prisma p/ consumidores evitarem dep direta em @prisma/client.
+// App externo nunca deve `import { User } from '@prisma/client'`; use este barrel.
+export type {
+  User,
+  Role,
+  Permission,
+  AuditLog,
+  Consulta,
+  ConsultaResult,
+  AiSummary,
+  Report,
+  Alert,
+  Cve,
+  CveReference,
+  News,
+  NewsSource,
+  Configuracao,
+  RefreshToken,
+  RoleName,
+  ConsultaType,
+  ConsultaStatus,
+  ReportFormat,
+  AlertChannel,
+  AiKind,
+} from '@prisma/client';
