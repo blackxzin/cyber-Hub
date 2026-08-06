@@ -16,6 +16,7 @@
     "db:generate": "pnpm --filter @cyberhub/database exec prisma generate",
     "db:migrate": "pnpm --filter @cyberhub/database exec prisma migrate dev",
     "db:seed": "pnpm --filter @cyberhub/database run seed",
+    "dbsync": "pnpm --filter @cyberhub/database exec tsx prisma/sync.ts",
     "db:studio": "pnpm --filter @cyberhub/database exec prisma studio",
     "docker:up": "docker compose up -d",
     "docker:down": "docker compose down",
