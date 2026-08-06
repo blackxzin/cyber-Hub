@@ -42,7 +42,7 @@ export class ReportsService {
   async getForDownload(id: string): Promise<{ path: string; filename: string }> {
     const report = await prisma.report.findUnique({ where: { id } });
     if (!report?.filePath) throw new NotFoundError('Relatório não encontrado ou ainda em geração');
-    return { path: report.filePath, filename: `${report.title.replace(/\W+/g, '_')}.html` };
+    return { path: report.filePath, filename: `${report.title.replace(/\W+/g, '_')}.pdf` };
   }
 }
 

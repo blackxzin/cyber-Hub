@@ -1,0 +1,95 @@
+# CyberHub AI — produção
+# Builda api+bot a partir do código local e sobe com postgres/redis/n8n/ollama.
+# Uso: docker compose -f docker-compose.prod.yml up -d --build
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: cyberhub-prod-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-cyberhub}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-cyberhub_dev_password}
+      POSTGRES_DB: ${POSTGRES_DB:-cyberhub}
+    volumes:
+      - prod_postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: cyberhub-prod-redis
+    restart: unless-stopped
+    command: redis-server --requirepass ${REDIS_PASSWORD:-cyberhub_redis_dev}
+    volumes:
+      - prod_redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-cyberhub_redis_dev}", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: cyberhub-prod-n8n
+    restart: unless-stopped
+    environment:
+      N8N_BASIC_AUTH_ACTIVE: "true"
+      N8N_BASIC_AUTH_USER: ${N8N_BASIC_AUTH_USER:-admin}
+      N8N_BASIC_AUTH_PASSWORD: ${N8N_BASIC_AUTH_PASSWORD:-cyberhub_n8n_dev}
+      GENERIC_TIMEZONE: ${TZ:-America/Sao_Paulo}
+      N8N_WEBHOOK_SIGNATURE: ${N8N_WEBHOOK_SECRET:-trocar_em_producao_n8n_webhook_secret_min_32_chars}
+    ports:
+      - "5678:5678"
+    volumes:
+      - prod_n8n:/home/node/.n8n
+      - ./n8n/workflows:/opt/workflows:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    image: cyberhub-api:prod
+    container_name: cyberhub-prod-api
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      REDIS_HOST: redis
+      POSTGRES_HOST: postgres
+      DATABASE_URL: postgresql://${POSTGRES_USER:-cyberhub}:${POSTGRES_PASSWORD:-cyberhub_dev_password}@postgres:5432/${POSTGRES_DB:-cyberhub}?schema=public
+    ports:
+      - "3001:3001"
+    volumes:
+      - prod_reports:/app/data/reports
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3001/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  discord-bot:
+    build:
+      context: .
+      dockerfile: apps/discord-bot/Dockerfile
+    container_name: cyberhub-prod-bot
+    restart: unless-stopped
+    env_file: apps/discord-bot/.env
+    depends_on:
+      - api
+    # ponytail: bot sobe com a .env do app; token via env do bot.
+
+volumes:
+  prod_postgres:
+  prod_redis:
+  prod_n8n:
+  prod_reports:

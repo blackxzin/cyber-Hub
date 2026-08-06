@@ -2,6 +2,7 @@ import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { Worker } from 'bullmq';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import { Document, Page, Text, View, renderToBuffer } from '@react-pdf/renderer';
 import { config } from '@cyberhub/shared';
 import { prisma } from '@cyberhub/database';
 import { ReportsQueue } from './reports.queue';
@@ -71,18 +72,18 @@ export class ReportsWorker implements OnModuleInit {
 
     const storage = config().REPORTS_STORAGE_PATH;
     await mkdir(storage, { recursive: true });
-    const html = buildHtml(title, summary, summaryExec, target);
-    const jsonPath = join(storage, `${reportId}.json`);
-    const htmlPath = join(storage, `${reportId}.html`);
-    await writeFile(jsonPath, JSON.stringify({ title, summary, aiSummary: summaryExec, target }, null, 2));
-    await writeFile(htmlPath, html);
+    const pdfPath = join(storage, `${reportId}.pdf`);
+    const buf = await renderPdf(reportDoc(title, summary, summaryExec, target));
+    await writeFile(pdfPath, buf);
+    // Mantém o JSON p/ consumo/inspeção da API/intel.
+    await writeFile(join(storage, `${reportId}.json`), JSON.stringify({ title, summary, aiSummary: summaryExec, target }, null, 2));
 
     await prisma.report.update({
       where: { id: reportId },
       data: {
         summaryExec,
-        filePath: htmlPath, // ponytail: PDF via @react-pdf quando necessário
-        format: 'HTML',
+        filePath: pdfPath,
+        format: 'PDF',
       },
     });
   }
@@ -93,19 +94,36 @@ export class ReportsWorker implements OnModuleInit {
   }
 }
 
-function buildHtml(
+// Documento PDF do relatório (react-pdf). renderDoc retorna o JSX; renderPdf
+// compila p/ Promise<Blob>. Corpo enxuto e idêntico ao antigo HTML.
+function reportDoc(
   title: string,
   summary: string,
   aiSummary: string | null,
   target: { ip?: string; domain?: string; cveId?: string },
-): string {
-  const targetInfo = JSON.stringify({ ...target }, null, 2);
-  return `<!doctype html><html lang="pt"><head><meta charset="utf-8"><title>${title}</title>
-<style>body{font-family:sans-serif;max-width:720px;margin:40px auto;color:#1a1a2e;line-height:1.6}
-h1{color:#0f3460}pre{background:#f1f5f9;padding:12px;border-radius:8px;overflow:auto}
-.badge{background:#5865f2;color:#fff;padding:2px 10px;border-radius:99px;font-size:12px}</style></head>
-<body><h1>🛡️ ${title}</h1><p><span class="badge">CyberHub AI</span> &nbsp;${new Date().toISOString()}</p>
-${aiSummary ? `<h2>Resumo IA</h2><p>${aiSummary}</p>` : ''}
-<h2>Descrição</h2><p>${summary || '—'}</p>
-<h2>Alvo</h2><pre>${targetInfo}</pre></body></html>`;
+): JSX.Element {
+  return (
+    <Document>
+      <Page size="A4" style={{ padding: 32, fontFamily: 'Helvetica', fontSize: 11, color: '#1a1a2e' }}>
+        <View style={{ marginBottom: 16 }}>
+          <Text style={{ fontSize: 20, color: '#0f3460', marginBottom: 4 }}>🛡️ {title}</Text>
+          <Text style={{ fontSize: 9, color: '#5865f2' }}>CyberHub AI — {new Date().toISOString()}</Text>
+        </View>
+        {aiSummary ? (
+          <View style={{ marginBottom: 12 }}>
+            <Text style={{ fontSize: 13, fontWeight: 'bold', marginBottom: 4 }}>Resumo IA</Text>
+            <Text>{aiSummary}</Text>
+          </View>
+        ) : null}
+        <Text style={{ fontSize: 13, fontWeight: 'bold', marginBottom: 4 }}>Descrição</Text>
+        <Text style={{ marginBottom: 12 }}>{summary || '—'}</Text>
+        <Text style={{ fontSize: 13, fontWeight: 'bold', marginBottom: 4 }}>Alvo</Text>
+        <Text style={{ fontFamily: 'Courier', fontSize: 9 }}>{JSON.stringify({ ...target }, null, 2)}</Text>
+      </Page>
+    </Document>
+  );
+}
+
+function renderPdf(element: JSX.Element): Promise<Buffer> {
+  return renderToBuffer(element);
 }

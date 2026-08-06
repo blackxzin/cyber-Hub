@@ -28,11 +28,12 @@ export class ReportsController {
   }
 
   @Get(':id/pdf')
-  async pdf(@Param('id') id: string, @Res({ passthrough: true }) res: FastifyReply) {
+  async pdf(@Param('id') id: string, @Res() res: FastifyReply) {
     const { path, filename } = await this.reports.getForDownload(id);
-    res.header('Content-Type', 'text/html');
+    res.header('Content-Type', 'application/pdf');
     res.header('Content-Disposition', `inline; filename="${filename}"`);
-    createReadStream(path).pipe(res.raw);
+    // Sem passthrough: o Fastify envia o stream e aguarda o fim (EOF correto).
+    res.send(createReadStream(path));
   }
 
   private async resolveUserId(): Promise<string> {
