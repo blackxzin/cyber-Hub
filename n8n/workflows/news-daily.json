@@ -1,0 +1,68 @@
+{
+  "name": "News Daily Sync",
+  "nodes": [
+    {
+      "parameters": { "rule": { "interval": [{}] } },
+      "id": "cron-news",
+      "name": "Cron Diário",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 0],
+      "webhookId": "cron-news"
+    },
+    {
+      "parameters": {
+        "url": "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json",
+        "options": {}
+      },
+      "id": "http-cisa-news",
+      "name": "Buscar CISA KEV",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [220, 0]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "newsItems",
+              "name": "items",
+              "value": "={{ $json.vulnerabilities.map(v => ({ title: v.product + ' (' + v.vendorProject + ') — ' + v.cveID, url: v.url || ('https://cve.cisa.gov/' + v.cveID), source: 'CISA KEV', publishedAt: v.dateAdded, summary: v.shortDescription })) }}"
+            }
+          ]
+        }
+      },
+      "id": "extract-news",
+      "name": "Mapear Notícias",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [600, 0]
+    },
+    {
+      "parameters": {
+        "url": "http://172.17.0.1:3001/webhooks/n8n/news-ingest",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ items: $json.items }) }}",
+        "options": {},
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-webhook-signature", "value": "=sha256={{ $env.N8N_WEBHOOK_SIGNATURE }}" }
+          ]
+        }
+      },
+      "id": "post-news-ingest",
+      "name": "POST News Ingest",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 0]
+    }
+  ],
+  "connections": {
+    "Cron Diário": { "main": [[{ "node": "Buscar CISA KEV", "type": "main", "index": 0 }]] },
+    "Buscar CISA KEV": { "main": [[{ "node": "Mapear Notícias", "type": "main", "index": 0 }]] },
+    "Mapear Notícias": { "main": [[{ "node": "POST News Ingest", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" }
+}

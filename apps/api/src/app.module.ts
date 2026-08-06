@@ -16,6 +16,7 @@ import { IntelModule } from './intel/intel.module';
 import { ReportsModule } from './reports/reports.module';
 import { AlertsModule } from './alerts/alerts.module';
 import { LogsModule } from './logs/logs.module';
+import { WebhooksModule } from './webhooks/webhooks.module';
 import { JwtAuthGuard } from './shared/guards/jwt-auth.guard';
 import { RolesGuard } from './shared/guards/roles.guard';
 
@@ -45,6 +46,7 @@ import { RolesGuard } from './shared/guards/roles.guard';
     ReportsModule,
     AlertsModule,
     LogsModule,
+    WebhooksModule,
   ],
   providers: [
     // Guarda JWT global: tudo exige auth.exceto @Public().

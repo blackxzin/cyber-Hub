@@ -48,6 +48,7 @@ services:
       GENERIC_TIMEZONE: ${TZ:-America/Sao_Paulo}
       EXECUTIONS_DATA_PRUNE: "true"
       EXECUTIONS_DATA_MAX_AGE: 168 # 7 dias
+      N8N_WEBHOOK_SIGNATURE: ${N8N_WEBHOOK_SECRET:-trocar_em_producao_n8n_webhook_secret_min_32_chars}
     ports:
       - "5678:5678"
     volumes:
