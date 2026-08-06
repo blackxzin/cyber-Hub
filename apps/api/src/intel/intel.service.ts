@@ -5,6 +5,8 @@ import { AbuseIpdbAdapter } from './adapters/abuseipdb.adapter';
 import { VirustotalAdapter } from './adapters/virustotal.adapter';
 import { DnsAdapter } from './adapters/dns.adapter';
 import { WhoisAdapter } from './adapters/whois.adapter';
+import { IpGeoAdapter } from './adapters/ipgeo.adapter';
+import { RdapAdapter } from './adapters/rdap.adapter';
 import type { IIntelAdapter, IntelDomainResult, IntelIpResult } from './intel-adapter';
 
 // Orquestra adapters: consulta cada fonte ativa em paralelo, funde os campos
@@ -14,7 +16,14 @@ export class IntelService {
   private readonly adapters: IIntelAdapter[];
 
   constructor(private readonly cache: RedisCacheService) {
-    this.adapters = [new VirustotalAdapter(), new AbuseIpdbAdapter(), new DnsAdapter(), new WhoisAdapter()];
+    this.adapters = [
+      new VirustotalAdapter(),
+      new AbuseIpdbAdapter(),
+      new IpGeoAdapter(),
+      new DnsAdapter(),
+      new WhoisAdapter(),
+      new RdapAdapter(),
+    ];
   }
 
   async ip(ip: string) {
