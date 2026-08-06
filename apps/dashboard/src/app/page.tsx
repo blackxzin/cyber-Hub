@@ -1,9 +1,26 @@
+'use client';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '../lib/auth';
+
+// Home protegida: redireciona pra /login se não autenticado.
 export default function HomePage() {
+  const { user, loading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!loading && !user) router.replace('/login');
+  }, [loading, user, router]);
+
+  if (loading || !user) return <p className="text-muted-foreground">Carregando…</p>;
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-semibold">Painel</h1>
-        <p className="text-muted-foreground">Consulte CVEs, notícias, intel de IP/domínio e gere relatórios.</p>
+        <p className="text-muted-foreground">
+          Olá, {user.name ?? user.email}. Consulte CVEs, notícias, intel e gere relatórios.
+        </p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

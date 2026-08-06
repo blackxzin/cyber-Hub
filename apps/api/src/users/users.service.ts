@@ -10,12 +10,12 @@ export class UsersService {
   async getMe(userId: string) {
     const user = await this.users.findById(userId);
     if (!user) throw new NotFoundError('usuário não encontrado');
-    return this.toDto(user);
+    return { user: this.toDto(user) };
   }
 
   async updateMe(userId: string, dto: UpdateUserDto) {
     const user = await this.users.updateProfile(userId, dto);
-    return this.toDto(user);
+    return { user: this.toDto(user) };
   }
 
   private toDto(u: {
