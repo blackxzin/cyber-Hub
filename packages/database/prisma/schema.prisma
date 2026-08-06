@@ -3,6 +3,9 @@
 
 generator client {
   provider = "prisma-client-js"
+  // Docker de produção roda alpine (musl). Sem isso o Prisma erra o engine
+  // e a API crasha ao iniciar. nativeras prisma gera ambos (host + musl).
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
 }
 
 datasource db {
