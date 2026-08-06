@@ -8,7 +8,7 @@ import { commands } from './commands';
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 
-client.once('ready', () => {
+client.once('clientReady', () => {
   console.log(`✅ Bot online como ${client.user?.tag}`);
   const registered = commands.map((c) => c.data.name).join(', ');
   console.log(`Comandos disponíveis: ${registered}`);
