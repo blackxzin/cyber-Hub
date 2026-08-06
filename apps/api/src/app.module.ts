@@ -30,9 +30,10 @@ import { RolesGuard } from './shared/guards/roles.guard';
       // Valida env cedo (lança se inválido). env validated é reusado via @cyberhub/shared/config().
       validate: () => config(),
     }),
-    ThrottlerModule.forRoot([
+ThrottlerModule.forRoot([
       { name: 'default', ttl: 60_000, limit: 120 },
       { name: 'auth', ttl: 60_000, limit: 10 },
+      { name: 'ingest', ttl: 60_000, limit: 30 },
     ]),
     SharedModule,
     DatabaseModule,

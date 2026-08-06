@@ -40,11 +40,14 @@ export class ReportsWorker implements OnModuleInit {
     });
   }
 
-  private async generate(reportId: string, target: { ip?: string; domain?: string; cveId?: string }): Promise<void> {
+  private async generate(reportId: string, target: { ip?: string; domain?: string; cveId?: string; digest?: boolean }): Promise<void> {
     // Monta dados dependendo do alvo
     let title = 'Relatório CyberHub';
     let summary = '';
-    if (target.cveId) {
+    if (target.digest) {
+      title = 'Digest diário de notícias';
+      summary = await this.collectDigest();
+    } else if (target.cveId) {
       const cve = await prisma.cve.findUnique({ where: { id: target.cveId } });
       if (cve) {
         title = `Relatório CVE — ${cve.id}`;
@@ -91,6 +94,19 @@ export class ReportsWorker implements OnModuleInit {
   private async markFailed(reportId: string | undefined, message: string): Promise<void> {
     if (!reportId) return;
     await prisma.report.update({ where: { id: reportId }, data: { filePath: null } }).catch(() => {});
+  }
+
+  // Coleta títulos das notícias do dia (últimas 24h, até 30) p/ alimentar o digest.
+  private async collectDigest(): Promise<string> {
+    const since = new Date(Date.now() - 24 * 3600 * 1000);
+    const news = await prisma.news.findMany({
+      where: { publishedAt: { gte: since } },
+      orderBy: { publishedAt: 'desc' },
+      take: 30,
+      select: { title: true, url: true },
+    });
+    if (news.length === 0) return 'Nenhuma notícia ingerida nas últimas 24h.';
+    return news.map((n, i) => `${i + 1}. ${n.title}${n.url ? ` — ${n.url}` : ''}`).join('\n');
   }
 }
 

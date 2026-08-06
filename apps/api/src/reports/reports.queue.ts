@@ -20,7 +20,7 @@ export class ReportsQueue implements OnModuleDestroy {
     });
   }
 
-  async add(reportId: string, target: { ip?: string; domain?: string; cveId?: string }): Promise<void> {
+  async add(reportId: string, target: { ip?: string; domain?: string; cveId?: string; digest?: boolean }): Promise<void> {
     await this.queue.add('generate', { reportId, target });
   }
 

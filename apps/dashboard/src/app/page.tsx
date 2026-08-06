@@ -78,6 +78,14 @@ function Dashboard({ user }: { user: { name: string | null; email: string } }) {
           <div className="text-lg">📄 Relatórios</div>
           <p className="text-sm text-muted-foreground">Relatórios gerados (PDF/JSON) e download.</p>
         </a>
+        <a href="/ai" className="rounded-lg border border-border p-4 hover:bg-muted/40 transition-colors">
+          <div className="text-lg">🤖 IA</div>
+          <p className="text-sm text-muted-foreground">Pergunte sobre CVE/IP/domínio — responde em PT-BR.</p>
+        </a>
+        <a href="/metrics" className="rounded-lg border border-border p-4 hover:bg-muted/40 transition-colors">
+          <div className="text-lg">📊 Métricas</div>
+          <p className="text-sm text-muted-foreground">CVEs por severidade e por dia (30 dias).</p>
+        </a>
       </div>
     </div>
   );

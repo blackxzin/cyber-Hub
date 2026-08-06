@@ -6,14 +6,16 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc -b",
-    "clean": "rimraf dist .turbo"
+    "clean": "rimraf dist .turbo",
+    "test": "vitest run"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
+    "rimraf": "^6.0.1",
     "typescript": "^5.7.2",
-    "rimraf": "^6.0.1"
+    "vitest": "^1.6.1"
   }
 }

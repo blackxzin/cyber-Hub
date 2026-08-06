@@ -1,4 +1,5 @@
 import { Controller, Post, Body, Req, Res } from '@nestjs/common';
+import { SkipThrottle, Throttle } from '@nestjs/throttler';
 import { FastifyReply } from 'fastify';
 import { AuthService } from './auth.service';
 import { ZodValidationPipe } from '../shared/pipes/zod-validation.pipe';
@@ -11,11 +12,14 @@ import type { AuthedRequest } from './auth.types';
 const ACCESS_COOKIE = 'cyhub_access';
 const REFRESH_COOKIE = 'cyhub_refresh';
 
+// Rotas de auth usam tier mais apertado (10/min p/ login/register) p/ mitigar brute-force.
 @Controller('auth')
+@SkipThrottle({ default: true })
 export class AuthController {
   constructor(private readonly auth: AuthService) {}
 
   @Public()
+  @Throttle({ auth: { ttl: 60_000, limit: 10 } })
   @Post('register')
   async register(
     @Body(new ZodValidationPipe(registerSchema)) dto: RegisterDto,
@@ -27,6 +31,7 @@ export class AuthController {
   }
 
   @Public()
+  @Throttle({ auth: { ttl: 60_000, limit: 10 } })
   @Post('login')
   async login(
     @Body(new ZodValidationPipe(loginSchema)) dto: LoginDto,

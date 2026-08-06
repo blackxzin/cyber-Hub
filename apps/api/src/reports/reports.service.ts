@@ -21,6 +21,15 @@ export class ReportsService {
     return { id: report.id, status: 'pending' };
   }
 
+  // Digest diário: enfileira um relatório-resumo das notícias do dia (IA resume).
+  async digest(userId: string): Promise<{ id: string; status: string }> {
+    const today = new Date();
+    const title = `Digest diário — ${today.toLocaleDateString('pt-BR')}`;
+    const report = await prisma.report.create({ data: { userId, title, format: 'PDF' } });
+    await this.queue.add(report.id, { digest: true });
+    return { id: report.id, status: 'pending' };
+  }
+
   async list(userId: string, skip: number, take: number) {
     const [items, total] = await Promise.all([
       prisma.report.findMany({ where: { userId }, orderBy: { createdAt: 'desc' }, skip, take }),

@@ -32,6 +32,7 @@ export class AuditInterceptor implements NestInterceptor {
       url: string;
       ip: string;
       headers: Record<string, string>;
+      body?: unknown;
       user?: { id?: string };
     }>();
 
@@ -49,11 +50,22 @@ export class AuditInterceptor implements NestInterceptor {
               target: req.url,
               ip: req.ip,
               userAgent: req.headers['user-agent'] ?? null,
-              meta: {},
+              meta: this.metaFor(req.url, req.body) as any,
             },
           })
           .catch((e: unknown) => log.error({ err: (e as Error).message }, 'falha ao gravar auditLog'));
       }),
     );
+  }
+
+  // Extrai um resumo (sem secrets) do corpo p/ contexto: query de IA, regra de alerta, etc.
+  private metaFor(url: string, body: unknown): Record<string, unknown> {
+    if (!body || typeof body !== 'object') return {};
+    const b = body as Record<string, unknown>;
+    if (url.startsWith('/ai/')) return { query: b['query'] ?? b['message'] };
+    if (url.startsWith('/alerts')) return { channel: b['channel'] };
+    if (url.startsWith('/reports')) return { target: b['ip'] ?? b['domain'] ?? b['cveId'] };
+    if (url.startsWith('/webhooks/')) return { ingested: b['cveIds'] ? (b['cveIds'] as unknown[]).length : (b['items'] as unknown[] | undefined)?.length };
+    return {};
   }
 }

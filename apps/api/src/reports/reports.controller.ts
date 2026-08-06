@@ -20,6 +20,12 @@ export class ReportsController {
     return this.reports.create(target, userId);
   }
 
+  // Digest diário: relatório-resumo das notícias do dia (IA resume).
+  @Post('digest')
+  async digest() {
+    return this.reports.digest(await botUserId());
+  }
+
   @Get()
   async list(@Query('limit') limit?: string, @Query('offset') offset?: string) {
     const take = clampInt(limit, 10, 1, 50);

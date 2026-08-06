@@ -1,4 +1,5 @@
 import { Body, Controller, Headers, HttpCode, Post, UnauthorizedException } from '@nestjs/common';
+import { SkipThrottle, Throttle } from '@nestjs/throttler';
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { config } from '@cyberhub/shared';
 import { Public } from '../shared/decorators/decorators';
@@ -6,7 +7,10 @@ import { IngestService, type IngestCve, type IngestNews } from './ingest.service
 
 // Endpoints de ingestão vindo do n8n. Assinados com HMAC (N8N_WEBHOOK_SECRET):
 // header `x-webhook-signature: sha256=<hex>`. Sem assinatura válida → 401.
+// Throttled p/ 30/min (n8n dispara poucos; limita abuso mesmo c/ HMAC).
 @Public()
+@SkipThrottle({ default: true })
+@Throttle({ ingest: { ttl: 60_000, limit: 30 } })
 @Controller('webhooks/n8n')
 export class WebhooksController {
   constructor(private readonly ingest: IngestService) {}
