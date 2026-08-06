@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { prisma } from '@cyberhub/database';
 import { parseCvss } from '@cyberhub/utils';
+import { AlertDispatcher } from '../alerts/alert-dispatcher';
 
 // Ingest vindo do n8n (webhook HMAC). Recebe itens já buscados pelo workflow
 // (NVD/CISA) e faz upsert. Reusa o mapping do sync.ts (para a API não depender
@@ -8,6 +9,8 @@ import { parseCvss } from '@cyberhub/utils';
 // ponytail: quando virar job recorrente, extrair para um serviço compartilhado.
 @Injectable()
 export class IngestService {
+  constructor(private readonly alerts: AlertDispatcher) {}
+
   async cves(items: IngestCve[], cveIds?: string[]): Promise<number> {
     // Se só vieram cveIds (workflow gera da CISA KEV), busca o detalhe no NVD
     // para ter description/cvss antes de persistir.
@@ -45,6 +48,15 @@ export class IngestService {
           },
         },
         update: {},
+      });
+      // Alerta se a regra casa (severidade >= minSeverity). Fire-and-forget.
+      const firstRef = item.references?.[0]?.url;
+      await this.alerts.evaluate({
+        type: 'CVE',
+        severity: score != null ? severityOf(score) : 'UNKNOWN',
+        target: item.id,
+        title: `Novo CVE ${item.id}`,
+        ...(firstRef ? { url: firstRef } : {}),
       });
       count++;
     }
@@ -87,4 +99,11 @@ export interface IngestNews {
   source?: string;
   publishedAt?: string;
   summary?: string;
+}
+
+function severityOf(cvss: number): string {
+  if (cvss >= 9) return 'CRITICAL';
+  if (cvss >= 7) return 'HIGH';
+  if (cvss >= 4) return 'MEDIUM';
+  return 'LOW';
 }

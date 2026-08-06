@@ -31,6 +31,8 @@ export const envSchema = z.object({
   DISCORD_BOT_TOKEN: z.string().optional(),
   DISCORD_CLIENT_ID: z.string().optional(),
   CYBERHUB_API_KEY: z.string().min(16).optional(),
+  // Webhook Discord p/ AlertsModule (disparo automático de alertas)
+  DISCORD_ALERT_WEBHOOK_URL: z.string().url().optional(),
 
   // n8n
   N8N_BASIC_AUTH_USER: z.string().optional(),
