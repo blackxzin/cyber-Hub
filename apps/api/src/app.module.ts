@@ -13,6 +13,9 @@ import { CvesModule } from './cves/cves.module';
 import { NewsModule } from './news/news.module';
 import { AiModule } from './ai/ai.module';
 import { IntelModule } from './intel/intel.module';
+import { ReportsModule } from './reports/reports.module';
+import { AlertsModule } from './alerts/alerts.module';
+import { LogsModule } from './logs/logs.module';
 import { JwtAuthGuard } from './shared/guards/jwt-auth.guard';
 import { RolesGuard } from './shared/guards/roles.guard';
 
@@ -39,6 +42,9 @@ import { RolesGuard } from './shared/guards/roles.guard';
     NewsModule,
     AiModule,
     IntelModule,
+    ReportsModule,
+    AlertsModule,
+    LogsModule,
   ],
   providers: [
     // Guarda JWT global: tudo exige auth.exceto @Public().

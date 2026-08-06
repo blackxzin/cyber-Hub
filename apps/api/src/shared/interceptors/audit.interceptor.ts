@@ -9,6 +9,7 @@ import { Observable, tap } from 'rxjs';
 import { prisma } from '@cyberhub/database';
 import { createLogger } from '@cyberhub/shared';
 import { SKIP_AUDIT_KEY } from '../decorators/decorators';
+import { botUserId } from '../bot-user';
 
 const log = createLogger('api.audit');
 
@@ -18,7 +19,7 @@ const log = createLogger('api.audit');
 export class AuditInterceptor implements NestInterceptor {
   constructor(private readonly reflector: Reflector) {}
 
-  intercept(ctx: ExecutionContext, next: CallHandler): Observable<any> {
+  async intercept(ctx: ExecutionContext, next: CallHandler): Promise<Observable<any>> {
     const skip = this.reflector.getAllAndOverride<boolean>(SKIP_AUDIT_KEY, [
       ctx.getHandler(),
       ctx.getClass(),
@@ -35,7 +36,7 @@ export class AuditInterceptor implements NestInterceptor {
     }>();
 
     const isMutation = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method);
-    const userId = req.user?.id;
+    const userId = req.user?.id ?? (isMutation ? await botUserId() : undefined);
     if (!isMutation || !userId) return next.handle();
 
     return next.handle().pipe(

@@ -5,7 +5,9 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 set -a; source .env; set +a
 mkdir -p data
-pkill -f "cyberhub/api.*dist/main" 2>/dev/null || true
+# Mata qualquer node em apps/api/dist/main (por porta: exige o fuser/ss correto)
+pkill -f "apps/api/dist/main" 2>/dev/null || true
+sleep 1
 nohup node apps/api/dist/main > /tmp/cyberhub-api.log 2>&1 &
 echo "API iniciada (pid $!) — log: /tmp/cyberhub-api.log"
 sleep 2
