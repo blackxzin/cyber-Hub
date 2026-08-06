@@ -1,4 +1,4 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, OnModuleDestroy } from '@nestjs/common';
 import { Public } from '../shared/decorators/decorators';
 import { PrismaService } from '../database/prisma.service';
 import { config } from '@cyberhub/shared';
@@ -10,7 +10,7 @@ const log = createLogger('api.health');
 // Healthcheck agregado: DB + Redis + n8n + Ollama.
 // Nunca vaza secrets — só booleans. n8n/Ollama são opcionais em dev.
 @Controller('health')
-export class HealthController {
+export class HealthController implements OnModuleDestroy {
   private readonly redis: Redis;
 
   constructor(private readonly prisma: PrismaService) {
@@ -44,6 +44,10 @@ export class HealthController {
     const status = ok ? 'ok' : 'degraded';
     if (!ok) log.warn(result, 'health degradado');
     return { status, ...result };
+  }
+
+  onModuleDestroy(): void {
+    this.redis?.disconnect();
   }
 
   private async httpOk(url: string, timeoutMs = 2000): Promise<boolean> {

@@ -21,6 +21,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   <a href="/cves" className="hover:text-foreground">CVEs</a>
                   <a href="/news" className="hover:text-foreground">Notícias</a>
                   <a href="/intel" className="hover:text-foreground">Intel</a>
+                  <a href="/reports" className="hover:text-foreground">Relatórios</a>
                 </nav>
               </div>
               <AuthBar />

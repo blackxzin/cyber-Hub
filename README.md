@@ -46,15 +46,16 @@ docker-compose.yml  # Postgres 16, Redis 7, n8n
 
 | Camada       | Tecnologia                                              |
 |--------------|---------------------------------------------------------|
-| Frontend     | Next.js 14, React, TypeScript, TailwindCSS, shadcn/ui  |
+| Frontend     | Next.js 14 (App Router), React, TypeScript, TailwindCSS |
 | Backend      | NestJS, TypeScript, Fastify (engine)                    |
 | Banco/Cache  | PostgreSQL 16, Redis 7                                  |
 | ORM          | Prisma                                                  |
 | Fila         | BullMQ                                                  |
-| Auth         | JWT access+refresh, RBAC                                |
-| Automação    | n8n                                                     |
-| Bot          | discord.js                                              |
-| IA           | Hermes (Ollama) + adapters                              |
+| Auth         | JWT access+refresh (cookie httpOnly), RBAC, API key     |
+| Automação    | n8n (workflows cve/news daily)                          |
+| Bot          | discord.js (/help, /status)                             |
+| IA           | Hermes (Ollama) via AIService Strategy                  |
+| Intel        | NVD, CISA KEV, ip-api.com, RDAP + (opcional) VT/Shodan  |
 
 ---
 
@@ -63,11 +64,12 @@ docker-compose.yml  # Postgres 16, Redis 7, n8n
 | Fase | Descrição | Status |
 |------|-----------|--------|
 | 0 | Planejamento (ADR, estrutura do monorepo) | ✅ Concluída |
-| 1 | Banco (Prisma), Docker, API base, Auth/RBAC | 🔄 Em andamento |
-| 2 | Dashboard web, Login, Bot Discord | ⏳ Pendente |
-| 3 | n8n, IA, CVEs, Notícias de segurança | ⏳ Pendente |
-| 4 | Relatórios PDF, Alertas, Histórico | ⏳ Pendente |
-| 5 | Deploy, CI/CD, Monitoramento | ⏳ Pendente |
+| 1 | Banco (Prisma), Docker, API base, Auth/RBAC | ✅ Concluída |
+| 2 | Dashboard web + Login, Bot Discord | ✅ Concluída |
+| 3 | n8n, IA, CVEs, Notícias, Intel, Webhooks | ✅ Concluída |
+| 4 | Relatórios PDF (BullMQ), Alertas, Logs | ✅ Concluída |
+| 5 | Docker prod, CI (typecheck/build) | ✅ Concluída |
+| 6 | Dashboard completo: auth, métricas, relatórios | ✅ Concluída |
 
 Ordem detalhada de implementação: ver seção **AD-14** do ADR.
 
@@ -110,9 +112,25 @@ pnpm dev
 
 ## 📌 Status atual
 
-**Fase 0 concluída** — ADR completo, estrutura do monorepo definida, Docker composepronto.
+**Fases 0–6 concluídas.** Monorepo funcional ponta-a-ponta:
 
-**Próximos passos**: `packages/database` (Prisma schema + repositories) → `scripts/setup.sh` → `apps/api` base.
+- **API** (NestJS + Fastify, `:3001`): Auth/RBAC, CVEs (NVD), Notícias (CISA), IA (`/ai/chat` + `/ai/explain`), Intel (`/intel/ip|domain`), Relatórios PDF (BullMQ), Alertas (Discord/Email/Webhook com retry), Logs, Webhooks n8n (HMAC), Stats (`/stats`).
+- **Dashboard** (Next 14, `:3000`): login JWT em cookie httpOnly, painel com métricas, páginas de CVEs/Notícias/Intel/Relatórios.
+- **Bot Discord** (`cyber.hub#7127`): `/help`, `/status`, comandos de intel/IA/news/report via `x-api-key`.
+- **n8n**: workflows `cve-daily` e `news-daily` agendados (cron → CISA KEV → POST no gateway com assinatura HMAC).
+- **IA**: `hermes3` no Ollama (chat + explicação de IP/CVE/domínio em PT-BR, com fallback offline).
+- **CI**: `.github/workflows/ci.yml` roda typecheck + build (turbo) em PR/push.
+- **Docker prod**: `docker-compose.prod.yml` (api + bot + postgres + redis + n8n + ollama).
+
+**Subir em dev:**
+
+```bash
+docker compose up -d            # infra (base do docker-compose.yml já inclui ollama)
+bash scripts/setup.sh          # migrations + seed (admin + bots + NVD/CISA)
+bash scripts/start-api.sh      # API :3001
+bash scripts/start-dashboard.sh # Dashboard :3000
+bash scripts/start-bot.sh      # Bot Discord
+```
 
 ---
 

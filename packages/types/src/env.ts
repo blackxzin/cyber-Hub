@@ -33,6 +33,15 @@ export const envSchema = z.object({
   CYBERHUB_API_KEY: z.string().min(16).optional(),
   // Webhook Discord p/ AlertsModule (disparo automático de alertas)
   DISCORD_ALERT_WEBHOOK_URL: z.string().url().optional(),
+  // Canal genérico WEBHOOK dos alertas (qualquer url que aceite POST JSON)
+  ALERT_WEBHOOK_URL: z.string().url().optional(),
+  // Canal EMAIL (SMTP) dos alertas — obrigatório só se usar channel EMAIL
+  SMTP_HOST: z.string().optional(),
+  SMTP_PORT: z.coerce.number().int().positive().optional(),
+  SMTP_USER: z.string().optional(),
+  SMTP_PASS: z.string().optional(),
+  SMTP_FROM: z.string().email().optional(),
+  ALERT_EMAIL_TO: z.string().email().optional(),
 
   // n8n
   N8N_BASIC_AUTH_USER: z.string().optional(),

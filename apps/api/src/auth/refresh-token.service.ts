@@ -1,4 +1,4 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import Redis from 'ioredis';
 import { createHash } from 'crypto';
 import { config } from '@cyberhub/shared';
@@ -26,7 +26,7 @@ function tokenHashOf(token: string): string {
 }
 
 @Injectable()
-export class RefreshTokenService implements OnModuleInit {
+export class RefreshTokenService implements OnModuleInit, OnModuleDestroy {
   private redis!: Redis;
 
   constructor(private readonly prisma: PrismaService) {}
@@ -39,6 +39,10 @@ export class RefreshTokenService implements OnModuleInit {
       password: cfg.REDIS_PASSWORD,
       keyPrefix: 'refresh:',
     });
+  }
+
+  onModuleDestroy(): void {
+    this.redis?.disconnect();
   }
 
   private key(userId: string, hash: string): string {

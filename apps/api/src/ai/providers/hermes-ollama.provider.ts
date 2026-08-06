@@ -23,7 +23,7 @@ export class HermesOllamaProvider implements IAIProvider {
           ],
           options: req.maxTokens ? { num_predict: req.maxTokens } : undefined,
         }),
-        signal: AbortSignal.timeout(30_000),
+        signal: AbortSignal.timeout(60_000),
       });
       if (!res.ok) throw new Error(`Ollama HTTP ${res.status}`);
       const body = (await res.json()) as { message?: { content?: string } };
