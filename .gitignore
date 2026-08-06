@@ -44,3 +44,7 @@ Thumbs.db
 # ─── Coverage ────────────────────────────────────────────
 coverage/
 .nyc_output/
+
+
+# n8n import API key (criada por scripts/n8n-import.sh)
+.n8n-api-key

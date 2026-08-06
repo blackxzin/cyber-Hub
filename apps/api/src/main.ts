@@ -11,6 +11,7 @@ import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './shared/filters/all-exceptions.filter';
 import { PinoLoggerService } from './shared/logger/pino-logger.service';
 import { config } from '@cyberhub/shared';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 async function bootstrap(): Promise<void> {
   const cfg = config();
@@ -43,6 +44,17 @@ async function bootstrap(): Promise<void> {
   );
 
   app.enableShutdownHooks();
+
+  // Swagger /docs — OpenAPI gerado dos decorators Nest. Ponytail: sem auth p/ leitura
+  // (docs internas em dev); em prod, proteger via proxy/gateway.
+  const docConfig = new DocumentBuilder()
+    .setTitle('CyberHub API')
+    .setDescription('Central de automação/IA/cybersecurity — CVEs, news, intel IA, reports, alerts.')
+    .setVersion('0.1.0')
+    .addBearerAuth()
+    .build();
+  const doc = SwaggerModule.createDocument(app, docConfig);
+  SwaggerModule.setup('/docs', app, doc);
 
   await app.listen(cfg.API_PORT, cfg.API_HOST);
   new Logger('bootstrap').log(`🛡️  CyberHub API em http://${cfg.API_HOST}:${cfg.API_PORT}`);
